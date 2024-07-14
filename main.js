@@ -33,9 +33,9 @@ const main = async () => {
 
   const baseUrl = `https://setup.rbxcdn.com/${version}-`;
   const manifestUrl = `${baseUrl}rbxPkgManifest.txt`;
-  const dumpDir = versionFolder;
+  const dumpDir = path.join(versionFolder);
 
-  fs.mkdirSync(dumpDir);
+  fs.mkdirSync(dumpDir, { recursive: true });
   logger.info(`Fetching manifest from ${manifestUrl}...`);
   const response = await axios.get(manifestUrl);
   const manifestContent = response.data.trim().split('\n');
