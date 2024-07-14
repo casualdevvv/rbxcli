@@ -13,7 +13,6 @@ const { folderMappings, AppSettings } = require('./modules/constants');
 const logger = require('./modules/logger');
 
 const main = async () => {
-  // this will setup the basics for the protocol
   logger.info('Fetching the latest version of Roblox from LIVE Channel...');
   logger.info('--> https://weao.xyz/api/versions/current');
   const version = await fetchVersion();
@@ -34,6 +33,8 @@ const main = async () => {
   const baseUrl = `https://setup.rbxcdn.com/${version}-`;
   const manifestUrl = `${baseUrl}rbxPkgManifest.txt`;
   const dumpDir = path.join(versionFolder);
+  // if you want it to download somewhere specific add it to the dumpdir
+  // path.join('Roblox', versionFolder);
 
   fs.mkdirSync(dumpDir, { recursive: true });
   logger.info(`Fetching manifest from ${manifestUrl}...`);
