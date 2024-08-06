@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const cliProgress = require('cli-progress');
 const { exit } = require('process');
-const axios = require('axios'); 
+const axios = require('axios');
 
 const downloadFile = require('./modules/download');
 const verifyChecksum = require('./modules/checksum');
@@ -12,12 +12,86 @@ const { checkExistingVersion, deleteFolderRecursive } = require('./modules/fileu
 const { folderMappings, AppSettings } = require('./modules/constants');
 const logger = require('./modules/logger');
 
+const colors = {
+  RESET: "\x1b[0m",
+  RED: "\x1b[31m",
+  GREEN: "\x1b[32m",
+  YELLOW: "\x1b[33m",
+  BLUE: "\x1b[34m",
+  MAGENTA: "\x1b[35m",
+  CYAN: "\x1b[36m",
+};
+
+const clearTerminal = () => {
+  console.clear(); 
+};
+
+const asciiArt = `
+▄▄▄  ▄▄▄▄· ▐▄• ▄ ▄▄▌  ▪   ▌ ▐·▄▄▄ . ▄▄· ▄▄▌  ▪  
+▀▄ █·▐█ ▀█▪ █▌█▌▪██•  ██ ▪█·█▌▀▄.▀·▐█ ▌▪██•  ██ 
+▐▀▀▄ ▐█▀▀█▄ ·██· ██▪  ▐█·▐█▐█•▐▀▀▪▄██ ▄▄██▪  ▐█·
+▐█•█▌██▄▪▐█▪▐█·█▌▐█▌▐▌▐█▌ ███ ▐█▄▄▌▐███▌▐█▌▐▌▐█▌
+.▀  ▀·▀▀▀▀ •▀▀ ▀▀.▀▀▀ ▀▀▀. ▀   ▀▀▀ ·▀▀▀ .▀▀▀ ▀▀▀                                                                                            
+Created by CasualDev, Inspired by latte rdd.latte.to and Bloxstrap bootstrapper
+`;
+
+const mainMenu = `
+${asciiArt}
+${colors.GREEN}1. Download latest version/update${colors.RESET}
+${colors.YELLOW}2. Download the last LIVE version (downgrade) - ${colors.RED}Coming Soon${colors.RESET}
+${colors.CYAN}3. Download a custom version hash${colors.RESET}
+${colors.MAGENTA}4. Exit${colors.RESET}
+`;
+
 const main = async () => {
+  clearTerminal();
+  console.log(mainMenu);
+  const choice = await prompt('Select an option: ');
+
+  switch (choice) {
+    case '1':
+      clearTerminal();
+      await downloadLatestVersion();
+      break;
+    case '2':
+      clearTerminal();
+      console.log(colors.RED + 'Coming Soon...' + colors.RESET);
+      break;
+    case '3':
+      clearTerminal();
+      const versionHash = await prompt('Enter the custom version hash: ');
+      await downloadCustomVersion(versionHash);
+      break;
+    case '4':
+      clearTerminal();
+      console.log(colors.BLUE + 'Exiting...' + colors.RESET);
+      exit(0);
+      break;
+    default:
+      clearTerminal();
+      console.log(colors.RED + 'Invalid option selected. Please try again.' + colors.RESET);
+      main();
+      break;
+  }
+};
+
+const downloadLatestVersion = async () => {
   logger.info('Fetching the latest version of Roblox from LIVE Channel...');
   logger.info('--> https://weao.xyz/api/versions/current');
   const version = await fetchVersion();
   logger.info(`Version: ${version}`);
+  
+  await downloadVersion(version);
+};
 
+const downloadCustomVersion = async (version) => {
+  logger.info(`Fetching the custom version: ${version}`);
+  
+  await downloadVersion(version);
+};
+
+const downloadVersion = async (version) => {
+  clearTerminal();
   const versionFolder = version.startsWith('version-') ? version : `version-${version}`;
   const existingVersionFolder = checkExistingVersion('version-');
   if (existingVersionFolder && existingVersionFolder === versionFolder) {
@@ -33,8 +107,6 @@ const main = async () => {
   const baseUrl = `https://setup.rbxcdn.com/${version}-`;
   const manifestUrl = `${baseUrl}rbxPkgManifest.txt`;
   const dumpDir = path.join(versionFolder);
-  // if you want it to download somewhere specific add it to the dumpdir
-  // path.join('Roblox', versionFolder);
 
   fs.mkdirSync(dumpDir, { recursive: true });
   logger.info(`Fetching manifest from ${manifestUrl}...`);
@@ -83,6 +155,19 @@ const main = async () => {
 
   logger.info(`Roblox ${version} has been successfully downloaded and extracted to ${dumpDir}.`);
   exit(0);
+};
+
+const prompt = (query) => {
+  return new Promise((resolve) => {
+    const rl = require('readline').createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    rl.question(query, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
 };
 
 main().catch(err => logger.error(err));

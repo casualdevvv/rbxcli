@@ -1,6 +1,6 @@
 {
   "name": "rbxlivecli",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A CLI alternative Roblox bootstrapper which downloads the latest version of the Roblox client from the LIVE Channel",
   "main": "main.js",
   "scripts": {
@@ -13,7 +13,6 @@
     "adm-zip": "^0.5.14",
     "axios": "^1.7.2",
     "cli-progress": "^3.12.0",
-    "crypto": "^1.0.1",
     "fs": "^0.0.1-security"
   }
 }

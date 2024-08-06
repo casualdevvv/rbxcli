@@ -1,14 +1,23 @@
-const logTypes = {
-    info: 'INFO',
-    warn: 'WARN',
-    error: 'ERROR',
-    debug: 'DEBUG',
+// ANSI escape codes for colors
+const colors = {
+    RESET: "\x1b[0m",
+    RED: "\x1b[31m",
+    YELLOW: "\x1b[33m",
+    GREEN: "\x1b[32m",
+    CYAN: "\x1b[36m",
+    MAGENTA: "\x1b[35m",
 };
 
+const logTypes = {
+    info: `${colors.GREEN}INFO${colors.RESET}`,
+    warn: `${colors.YELLOW}WARN${colors.RESET}`,
+    error: `${colors.RED}ERROR${colors.RESET}`,
+    debug: `${colors.CYAN}DEBUG${colors.RESET}`,
+};
 
 const log = (level, message) => {
     const timestamp = new Date().toLocaleString();
-    const formattedMessage = `[RBXLIVECLI] [${timestamp}] [${level}] ${message}`;
+    const formattedMessage = `[${colors.MAGENTA}RBXLIVECLI${colors.RESET}] [${timestamp}] [${level}] ${message}`;
 
     console.log(formattedMessage);
 };
