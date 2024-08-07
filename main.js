@@ -8,9 +8,18 @@ const downloadFile = require('./modules/download');
 const verifyChecksum = require('./modules/checksum');
 const extractZip = require('./modules/extract');
 const fetchVersion = require('./modules/version');
-const { checkExistingVersion, deleteFolderRecursive } = require('./modules/fileutils');
+const { deleteFolderRecursive } = require('./modules/fileutils');
 const { folderMappings, AppSettings } = require('./modules/constants');
 const logger = require('./modules/logger');
+const fetchPreviousVersion = require('./modules/fpv');
+
+const CONFIG_FILE_PATH = './config.json';
+const DEFAULT_CONFIG = {
+  deleteExistingFolders: false,
+  forceUpdate: false,
+};
+
+let config = { ...DEFAULT_CONFIG };
 
 const colors = {
   RESET: "\x1b[0m",
@@ -23,7 +32,7 @@ const colors = {
 };
 
 const clearTerminal = () => {
-  console.clear(); 
+  console.clear();
 };
 
 const asciiArt = `
@@ -31,17 +40,64 @@ const asciiArt = `
 ▀▄ █·▐█ ▀█▪ █▌█▌▪██•  ██ ▪█·█▌▀▄.▀·▐█ ▌▪██•  ██ 
 ▐▀▀▄ ▐█▀▀█▄ ·██· ██▪  ▐█·▐█▐█•▐▀▀▪▄██ ▄▄██▪  ▐█·
 ▐█•█▌██▄▪▐█▪▐█·█▌▐█▌▐▌▐█▌ ███ ▐█▄▄▌▐███▌▐█▌▐▌▐█▌
-.▀  ▀·▀▀▀▀ •▀▀ ▀▀.▀▀▀ ▀▀▀. ▀   ▀▀▀ ·▀▀▀ .▀▀▀ ▀▀▀                                                                                            
-Created by CasualDev, Inspired by latte rdd.latte.to and Bloxstrap bootstrapper
+.▀  ▀·▀▀▀▀ •▀▀ ▀▀.▀▀▀ ▀▀▀. ▀   ▀▀▀ ·▀▀▀ .▀▀▀ ▀▀▀ v1.0.4                                                                                            
+Download and launch Roblox versions using just the command line.
 `;
 
 const mainMenu = `
 ${asciiArt}
 ${colors.GREEN}1. Download latest version/update${colors.RESET}
-${colors.YELLOW}2. Download the last LIVE version (downgrade) - ${colors.RED}Coming Soon${colors.RESET}
+${colors.YELLOW}2. Download the last LIVE version (downgrade)${colors.RESET}
 ${colors.CYAN}3. Download a custom version hash${colors.RESET}
-${colors.MAGENTA}4. Exit${colors.RESET}
+${colors.MAGENTA}4. Settings${colors.RESET}
+${colors.RED}5. Exit${colors.RESET}
 `;
+
+const loadConfig = () => {
+  if (fs.existsSync(CONFIG_FILE_PATH)) {
+    const rawData = fs.readFileSync(CONFIG_FILE_PATH);
+    config = JSON.parse(rawData);
+  } else {
+    saveConfig();
+  }
+};
+
+const saveConfig = () => {
+  fs.writeFileSync(CONFIG_FILE_PATH, JSON.stringify(config, null, 2));
+};
+
+const showSettingsMenu = async () => {
+  clearTerminal();
+  console.log(`${colors.MAGENTA}Settings Menu${colors.RESET}`);
+  console.log(`${colors.GREEN}1. Toggle delete existing folders (Current: ${config.deleteExistingFolders})${colors.RESET}`);
+  console.log(`${colors.YELLOW}2. Toggle force update (Current: ${config.forceUpdate})${colors.RESET}`);
+  console.log(`${colors.RED}3. Back to main menu${colors.RESET}`);
+  const choice = await prompt('Select an option: ');
+
+  switch (choice) {
+    case '1':
+      config.deleteExistingFolders = !config.deleteExistingFolders;
+      console.log(`${colors.BLUE}Delete existing folders set to: ${config.deleteExistingFolders}${colors.RESET}`);
+      saveConfig();
+      await prompt('Press Enter to continue...');
+      showSettingsMenu();
+      break;
+    case '2':
+      config.forceUpdate = !config.forceUpdate;
+      console.log(`${colors.BLUE}Force update set to: ${config.forceUpdate}${colors.RESET}`);
+      saveConfig();
+      await prompt('Press Enter to continue...');
+      showSettingsMenu();
+      break;
+    case '3':
+      main();
+      break;
+    default:
+      console.log(colors.RED + 'Invalid option selected. Please try again.' + colors.RESET);
+      showSettingsMenu();
+      break;
+  }
+};
 
 const main = async () => {
   clearTerminal();
@@ -55,7 +111,10 @@ const main = async () => {
       break;
     case '2':
       clearTerminal();
-      console.log(colors.RED + 'Coming Soon...' + colors.RESET);
+      const previousVersion = await fetchPreviousVersion();
+      if (previousVersion) {
+        await downloadVersion(previousVersion);
+      }
       break;
     case '3':
       clearTerminal();
@@ -63,6 +122,10 @@ const main = async () => {
       await downloadCustomVersion(versionHash);
       break;
     case '4':
+      clearTerminal();
+      await showSettingsMenu();
+      break;
+    case '5':
       clearTerminal();
       console.log(colors.BLUE + 'Exiting...' + colors.RESET);
       exit(0);
@@ -77,36 +140,36 @@ const main = async () => {
 
 const downloadLatestVersion = async () => {
   logger.info('Fetching the latest version of Roblox from LIVE Channel...');
-  logger.info('--> https://weao.xyz/api/versions/current');
+  logger.info('--> https://clientsettingscdn.roblox.com/v2/client-version/WindowsPlayer/channel/live/');
   const version = await fetchVersion();
   logger.info(`Version: ${version}`);
-  
+
   await downloadVersion(version);
 };
 
 const downloadCustomVersion = async (version) => {
   logger.info(`Fetching the custom version: ${version}`);
-  
+
   await downloadVersion(version);
 };
 
 const downloadVersion = async (version) => {
   clearTerminal();
   const versionFolder = version.startsWith('version-') ? version : `version-${version}`;
-  const existingVersionFolder = checkExistingVersion('version-');
-  if (existingVersionFolder && existingVersionFolder === versionFolder) {
-    logger.info('Roblox is already updated.');
+  const dumpDir = path.join(__dirname, versionFolder);
+
+  if (fs.existsSync(dumpDir) && !config.forceUpdate) {
+    logger.info(`Version ${version} is already downloaded.`);
     exit(0);
   }
 
-  if (existingVersionFolder) {
-    logger.info(`Deleting existing folder: ${existingVersionFolder}`);
-    deleteFolderRecursive(existingVersionFolder);
+  if (fs.existsSync(dumpDir) && config.deleteExistingFolders) {
+    logger.info(`Deleting existing folder: ${dumpDir}`);
+    deleteFolderRecursive(dumpDir);
   }
 
   const baseUrl = `https://setup.rbxcdn.com/${version}-`;
   const manifestUrl = `${baseUrl}rbxPkgManifest.txt`;
-  const dumpDir = path.join(versionFolder);
 
   fs.mkdirSync(dumpDir, { recursive: true });
   logger.info(`Fetching manifest from ${manifestUrl}...`);
@@ -170,4 +233,5 @@ const prompt = (query) => {
   });
 };
 
+loadConfig();
 main().catch(err => logger.error(err));

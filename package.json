@@ -1,7 +1,7 @@
 {
   "name": "rbxlivecli",
-  "version": "1.0.3",
-  "description": "A CLI alternative Roblox bootstrapper which downloads the latest version of the Roblox client from the LIVE Channel",
+  "version": "1.0.4",
+  "description": "A CLI alternative Roblox bootstrapper",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

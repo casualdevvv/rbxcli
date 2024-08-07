@@ -1,4 +1,3 @@
-// ANSI escape codes for colors
 const colors = {
     RESET: "\x1b[0m",
     RED: "\x1b[31m",
