@@ -1,9 +1,7 @@
 
 # rbxlivecli
 
-A CLI alternative Roblox "bootstrapper" which downloads the latest version of the Roblox client from the LIVE Channel
-
-
+A CLI alternative Roblox "bootstrapper" which can download the latest, previous, or custom version hash of Roblox.
 
 ## Getting Started with rbxlivecli
 
@@ -30,6 +28,10 @@ Before you begin, ensure you have [Node.js](https://nodejs.org/) installed. This
 
 ## FAQ
 
+#### Can this be used to Downgrade Roblox?
+
+Yes, just select the "2. Download the last LIVE version (downgrade)" option in the menu. This will download the previous LIVE version of Roblox.
+
 #### Can this be used to launch Roblox games from [roblox.com](https://roblox.com)?
 
 No, there is no protocol support for launching games directly from the website. However, you can manually launch games by opening the `RobloxPlayerBeta.exe` in the downloaded version folder. Please note that rbxlivecli is not intended to replace the Roblox launcher or Bloxstrap.
@@ -40,7 +42,8 @@ Similar to how rdd.latte.to or Bloxstrap handles downloading Roblox versions, rb
 
 #### Can I download any Roblox version using this?
 
-By default, rbxlivecli will download the latest version of Roblox. However, it can be easily modified to download almost any version you need.
+Yes, just select the "3. Download a custom version hash" option, you can then input what version you would like to download.
+
 ## Credits
 
 Special thanks to [Bloxstrap](https://github.com/pizzaboxer/bloxstrap) for providing inspiration and resources that helped in the development of rbxlivecli. (Specifically the folder mappings for extraction)
