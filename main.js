@@ -40,18 +40,21 @@ const asciiArt = `
 ▀▄ █·▐█ ▀█▪ █▌█▌▪██•  ██ ▪█·█▌▀▄.▀·▐█ ▌▪██•  ██ 
 ▐▀▀▄ ▐█▀▀█▄ ·██· ██▪  ▐█·▐█▐█•▐▀▀▪▄██ ▄▄██▪  ▐█·
 ▐█•█▌██▄▪▐█▪▐█·█▌▐█▌▐▌▐█▌ ███ ▐█▄▄▌▐███▌▐█▌▐▌▐█▌
-.▀  ▀·▀▀▀▀ •▀▀ ▀▀.▀▀▀ ▀▀▀. ▀   ▀▀▀ ·▀▀▀ .▀▀▀ ▀▀▀ v1.0.4                                                                                            
+.▀  ▀·▀▀▀▀ •▀▀ ▀▀.▀▀▀ ▀▀▀. ▀   ▀▀▀ ·▀▀▀ .▀▀▀ ▀▀▀ v1.0.5                                                                                          
 Download and launch Roblox versions using just the command line.
 `;
 
 const mainMenu = `
-${asciiArt}
-${colors.GREEN}1. Download latest version/update${colors.RESET}
-${colors.YELLOW}2. Download the last LIVE version (downgrade)${colors.RESET}
+${colors.BLUE}${asciiArt}${colors.RESET}
+${colors.CYAN}1. Download latest version/update${colors.RESET}
+${colors.CYAN}2. Download the last LIVE version (downgrade)${colors.RESET}
 ${colors.CYAN}3. Download a custom version hash${colors.RESET}
-${colors.MAGENTA}4. Settings${colors.RESET}
-${colors.RED}5. Exit${colors.RESET}
+${colors.CYAN}4. Download from a specific channel${colors.RESET}
+${colors.GREEN}5. Settings${colors.RESET}
+${colors.RED}6. Exit${colors.RESET}
 `;
+
+
 
 const loadConfig = () => {
   if (fs.existsSync(CONFIG_FILE_PATH)) {
@@ -123,9 +126,14 @@ const main = async () => {
       break;
     case '4':
       clearTerminal();
-      await showSettingsMenu();
+      const channel = await prompt('Enter the channel name: ');
+      await downloadFromChannel(channel);
       break;
     case '5':
+      clearTerminal();
+      await showSettingsMenu();
+      break;
+    case '6':
       clearTerminal();
       console.log(colors.BLUE + 'Exiting...' + colors.RESET);
       exit(0);
@@ -151,6 +159,21 @@ const downloadCustomVersion = async (version) => {
   logger.info(`Fetching the custom version: ${version}`);
 
   await downloadVersion(version);
+};
+
+const downloadFromChannel = async (channel) => {
+  logger.info(`Fetching the latest version of Roblox from channel: ${channel}`);
+  const versionUrl = `https://clientsettingscdn.roblox.com/v2/client-version/WindowsPlayer/channel/${channel}/`;
+
+  try {
+    const response = await axios.get(versionUrl);
+    const version = response.data.clientVersionUpload; 
+    logger.info(`Version from channel ${channel}: ${version}`);
+
+    await downloadVersion(version);
+  } catch (error) {
+    logger.error(`Failed to fetch version from channel ${channel}: ${error.message}`);
+  }
 };
 
 const downloadVersion = async (version) => {
