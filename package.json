@@ -1,6 +1,6 @@
 {
-  "name": "rbxlivecli",
-  "version": "1.0.4",
+  "name": "rbxcli",
+  "version": "1.0.6",
   "description": "A CLI alternative Roblox bootstrapper",
   "main": "main.js",
   "scripts": {
