@@ -36,11 +36,11 @@ const clearTerminal = () => {
 };
 
 const asciiArt = `
-▄▄▄  ▄▄▄▄· ▐▄• ▄ ▄▄▌  ▪   ▌ ▐·▄▄▄ . ▄▄· ▄▄▌  ▪  
-▀▄ █·▐█ ▀█▪ █▌█▌▪██•  ██ ▪█·█▌▀▄.▀·▐█ ▌▪██•  ██ 
-▐▀▀▄ ▐█▀▀█▄ ·██· ██▪  ▐█·▐█▐█•▐▀▀▪▄██ ▄▄██▪  ▐█·
-▐█•█▌██▄▪▐█▪▐█·█▌▐█▌▐▌▐█▌ ███ ▐█▄▄▌▐███▌▐█▌▐▌▐█▌
-.▀  ▀·▀▀▀▀ •▀▀ ▀▀.▀▀▀ ▀▀▀. ▀   ▀▀▀ ·▀▀▀ .▀▀▀ ▀▀▀ v1.0.5                                                                                          
+██████  ██████  ██   ██  ██████ ██      ██ 
+██   ██ ██   ██  ██ ██  ██      ██      ██ 
+██████  ██████    ███   ██      ██      ██ 
+██   ██ ██   ██  ██ ██  ██      ██      ██ 
+██   ██ ██████  ██   ██  ██████ ███████ ██ v1.0.6                                                                                       
 Download and launch Roblox versions using just the command line.
 `;
 
@@ -50,11 +50,11 @@ ${colors.CYAN}1. Download latest version/update${colors.RESET}
 ${colors.CYAN}2. Download the last LIVE version (downgrade)${colors.RESET}
 ${colors.CYAN}3. Download a custom version hash${colors.RESET}
 ${colors.CYAN}4. Download from a specific channel${colors.RESET}
-${colors.GREEN}5. Settings${colors.RESET}
-${colors.RED}6. Exit${colors.RESET}
+${colors.CYAN}5. Launch Roblox${colors.RESET}
+${colors.CYAN}6. Launch Roblox with args${colors.RESET}
+${colors.GREEN}7. Settings${colors.RESET}
+${colors.RED}8. Exit${colors.RESET}
 `;
-
-
 
 const loadConfig = () => {
   if (fs.existsSync(CONFIG_FILE_PATH)) {
@@ -131,9 +131,17 @@ const main = async () => {
       break;
     case '5':
       clearTerminal();
-      await showSettingsMenu();
+      await launchRoblox();
       break;
     case '6':
+      clearTerminal();
+      await launchRoblox(true);
+      break;
+    case '7':
+      clearTerminal();
+      await showSettingsMenu();
+      break;
+    case '8':
       clearTerminal();
       console.log(colors.BLUE + 'Exiting...' + colors.RESET);
       exit(0);
@@ -167,7 +175,7 @@ const downloadFromChannel = async (channel) => {
 
   try {
     const response = await axios.get(versionUrl);
-    const version = response.data.clientVersionUpload; 
+    const version = response.data.clientVersionUpload;
     logger.info(`Version from channel ${channel}: ${version}`);
 
     await downloadVersion(version);
@@ -198,6 +206,14 @@ const downloadVersion = async (version) => {
   logger.info(`Fetching manifest from ${manifestUrl}...`);
   const response = await axios.get(manifestUrl);
   const manifestContent = response.data.trim().split('\n');
+
+  const firstLine = manifestContent[0].trim();
+  if (firstLine !== 'v0') {
+    logger.error(`Unexpected manifest version: ${firstLine}. Expected 'v0'.`);
+    return;
+  } else {
+    logger.info(`Manifest version: ${firstLine}`);
+  }
 
   const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
@@ -241,6 +257,52 @@ const downloadVersion = async (version) => {
 
   logger.info(`Roblox ${version} has been successfully downloaded and extracted to ${dumpDir}.`);
   exit(0);
+};
+
+const launchRoblox = async (withArgs = false) => {
+  const versions = fs.readdirSync(__dirname).filter(f => f.startsWith('version-'));
+  if (versions.length === 0) {
+    console.log(colors.RED + 'No Roblox versions found in the current directory.' + colors.RESET);
+    return;
+  }
+
+  console.log(`${colors.MAGENTA}Available Versions:${colors.RESET}`);
+  versions.forEach((version, index) => {
+    console.log(`${colors.CYAN}${index + 1}. ${version}${colors.RESET}`);
+  });
+
+  const versionChoice = await prompt('Select a version (1/2/3...): ');
+  const versionIndex = parseInt(versionChoice) - 1;
+
+  if (versionIndex < 0 || versionIndex >= versions.length) {
+    console.log(colors.RED + 'Invalid version selected.' + colors.RESET);
+    return;
+  }
+
+  const selectedVersion = versions[versionIndex];
+  const robloxPlayerPath = path.join(__dirname, selectedVersion, 'RobloxPlayerBeta.exe');
+
+  if (!fs.existsSync(robloxPlayerPath)) {
+    console.log(colors.RED + `RobloxPlayerBeta.exe not found in ${selectedVersion}` + colors.RESET);
+    return;
+  }
+
+  let launchArgs = '';
+  if (withArgs) {
+    launchArgs = await prompt('Enter the launch arguments (e.g., roblox://...): ');
+  }
+
+  const childProcess = require('child_process');
+  const command = `"${robloxPlayerPath}"`;
+  const args = launchArgs.split(' ');
+
+  console.log(colors.GREEN + `Launching Roblox with command: ${command} ${launchArgs}` + colors.RESET);
+
+  const process = childProcess.spawn(command, args, { shell: true, detached: true, stdio: 'ignore' });
+
+  process.unref();
+
+  console.log(colors.GREEN + 'Roblox launched successfully.' + colors.RESET);
 };
 
 const prompt = (query) => {
